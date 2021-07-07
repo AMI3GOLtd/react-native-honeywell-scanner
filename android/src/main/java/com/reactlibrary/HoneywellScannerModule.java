@@ -63,6 +63,14 @@ public class HoneywellScannerModule extends ReactContextBaseJavaModule implement
     @Override
     public void onFailureEvent(BarcodeFailureEvent barcodeFailureEvent) {
         if (D) Log.d(HoneyWellTAG, "HoneywellBarcodeReader - Barcode scan failed");
+        if (reader == null) {
+            return;
+        }
+        try {
+            reader.softwareTrigger(false);
+        } catch (ScannerUnavailableException | ScannerNotClaimedException e) {
+            e.printStackTrace();
+        }
         sendEvent(BARCODE_READ_FAIL, null);
     }
 
@@ -76,13 +84,39 @@ public class HoneywellScannerModule extends ReactContextBaseJavaModule implement
             @Override
             public void onCreated(AidcManager aidcManager) {
                 manager = aidcManager;
-                reader = manager.createBarcodeReader();
+                try {
+                    reader = manager.createBarcodeReader();
+                } catch (InvalidScannerNameException e) {
+                    e.printStackTrace();
+                }
                 if (reader != null) {
                     reader.addBarcodeListener(HoneywellScannerModule.this);
                     try {
                         reader.claim();
+                        reader.setProperty(BarcodeReader.PROPERTY_TRIGGER_CONTROL_MODE, BarcodeReader.TRIGGER_CONTROL_MODE_AUTO_CONTROL);
+
                         reader.setProperty(BarcodeReader.PROPERTY_EAN_8_CHECK_DIGIT_TRANSMIT_ENABLED, true);
                         reader.setProperty(BarcodeReader.PROPERTY_EAN_13_CHECK_DIGIT_TRANSMIT_ENABLED, true);
+                        Map<String, Object> properties = new HashMap<>();
+                        properties.put(BarcodeReader.PROPERTY_CODE_128_ENABLED, true);
+                        properties.put(BarcodeReader.PROPERTY_GS1_128_ENABLED, true);
+                        properties.put(BarcodeReader.PROPERTY_QR_CODE_ENABLED, true);
+                        properties.put(BarcodeReader.PROPERTY_CODE_39_ENABLED, true);
+                        properties.put(BarcodeReader.PROPERTY_DATAMATRIX_ENABLED, true);
+                        properties.put(BarcodeReader.PROPERTY_UPC_A_ENABLE, true);
+                        properties.put(BarcodeReader.PROPERTY_EAN_13_ENABLED, false);
+                        properties.put(BarcodeReader.PROPERTY_AZTEC_ENABLED, false);
+                        properties.put(BarcodeReader.PROPERTY_CODABAR_ENABLED, false);
+                        properties.put(BarcodeReader.PROPERTY_INTERLEAVED_25_ENABLED, false);
+                        properties.put(BarcodeReader.PROPERTY_PDF_417_ENABLED, false);
+                        // Set Max Code 39 barcode length
+                        properties.put(BarcodeReader.PROPERTY_CODE_39_MAXIMUM_LENGTH, 10);
+                        // Turn on center decoding
+                        properties.put(BarcodeReader.PROPERTY_CENTER_DECODE, true);
+                        // Enable bad read response
+                        properties.put(BarcodeReader.PROPERTY_NOTIFICATION_BAD_READ_ENABLED, true);
+                        // Apply the settings
+                        reader.setProperties(properties);
                         promise.resolve(true);
                     } catch (ScannerUnavailableException | UnsupportedPropertyException e) {
                         promise.resolve(false);
@@ -116,6 +150,31 @@ public class HoneywellScannerModule extends ReactContextBaseJavaModule implement
         constants.put("BARCODE_READ_FAIL", BARCODE_READ_FAIL);
         constants.put("isCompatible", isCompatible());
         return constants;
+    }
+    public void onResumeScanner(BarcodeReader barcodeReader) {
+        if ( barcodeReader != null) {
+            try {
+                barcodeReader.claim();
+            } catch (ScannerUnavailableException e) {
+               // setErrorMessage(SCANNER_UNAVAILABLE);
+            }
+        }
+    }
+
+    public void onPauseScanner(BarcodeReader barcodeReader) {
+        if (barcodeReader != null) {
+            barcodeReader.release();
+        }
+    }
+
+    public void onDestoryScanner(BarcodeReader barcodeReader, AidcManager manager) {
+        if (barcodeReader != null) {
+            barcodeReader.close();
+        }
+
+        if (manager != null) {
+            manager.close();
+        }
     }
 
 }
