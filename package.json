@@ -7,9 +7,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc",
-    "postinstall": "cd node_modules/react-native-honeywell-scanner-v2 && npm install && npm run build"
-
+    "build": "tsc"
   },
   "precommit": [
     "build"
@@ -40,6 +38,6 @@
   },
   "devDependencies": {
     "react": "^16.13.1",
-    "react-native": "^0.63.3"
+    "react-native": "^0.64.2"
   }
 }
