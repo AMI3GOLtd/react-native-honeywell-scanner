@@ -48,4 +48,4 @@ buck-out/
 .npmrc
 
 #TSC
-# /dist
+/dist
